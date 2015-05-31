@@ -28,9 +28,10 @@ sub new {
     if ($stderrvar =~ /Illegal Content-Type parameter/) {
     } elsif ($stderrvar =~ /Use of uninitialized value in lc.*Header.pm/) {
     } else {
-      printf "stderrvar %s\n", $stderrvar;
-      printf "stderrvar %s\n----------------------------------\n", $raw_text;
+      printf STDERR "stderrvar %s\n", $stderrvar;
+      printf STDERR "stderrvar %s\n----------------------------------\n", $raw_text;
     }
+    $stderrvar = undef;
   }
   @{$self->{attachments}} = $parsed->subparts;
   my $header_values = {};
@@ -41,11 +42,10 @@ sub new {
     $header_values->{lc $vals[0]} = $vals[1]; # weil manchmal Message-ID, manchmal Message-Id
   }
   my %save_header_values = %{$header_values};
-  eval {
-  my $stderrvar;
   *SAVEERR = *STDERR;
   open OUT ,'>',\$stderrvar;
   *STDERR = *OUT;
+  eval {
     my $date = new Date::Manip::Date;
     if (! exists $header_values->{received}) {
       # vom lokalen Notes versandt
@@ -58,8 +58,8 @@ sub new {
       $header_values->{received} = $date->printf("%s");
       #$header_values->{received} = $date->printf("%Y/%m/%d %H:%M:%S");
     }
-  *STDERR = *SAVEERR;
   };
+  *STDERR = *SAVEERR;
   if ($@ || $stderrvar) {
     if (! $header_values->{received} && exists $header_values->{'x-olkeid'}) {
       $header_values->{subject} = '_check_mailbox_health_SPAM_';
@@ -72,10 +72,9 @@ sub new {
       # das raeumt dann die content_type-Methode auf
     } elsif ($stderrvar =~ /Use of uninitialized value in lc at .*Header\.pm/) {
     } else {
-    printf STDERR "1norecieved %s\n%s\n", $stderrvar, Data::Dumper::Dumper(\%save_header_values);
-    printf STDERR "2norecieved %s\n%s\n", $stderrvar, Data::Dumper::Dumper($header_values);
-    printf STDERR "3norecieved %s\n%s\n", $stderrvar, $raw_text;
-    printf "--------------------------------------------------------------------------------\n\n";
+      printf STDERR "2norecieved %s\n%s\n", $stderrvar, Data::Dumper::Dumper($header_values);
+      printf STDERR "3norecieved %s\n%s\n", $stderrvar, $raw_text;
+      printf "--------------------------------------------------------------------------------\n\n";
       $self->add_unknown(sprintf "date error in %s from %s",
           $header_values->{'message-id'}, $header_values->{from});
     }
@@ -100,9 +99,6 @@ sub signature {
 
 sub age_minutes {
   my $self = shift;
-if (! defined $self->{header_values}->{received}) {
-    printf STDERR "rootz %s %s\n", $self->is_spam ? "spaschpff" : "nox", Data::Dumper::Dumper($self->{header_values});
-}
   return (time - $self->{header_values}->{received}) / 60;
 }
 
