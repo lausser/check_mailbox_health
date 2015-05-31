@@ -11,8 +11,9 @@ VPATH=$(top_srcdir) $(top_srcdir)/plugins-scripts $(top_srcdir)/plugins-scripts/
 
 libexec_SCRIPTS=check_mailbox_health
 MY_MODULES=
-EXTRA_MODULES=\
+GL_MODULES=\
   GLPlugin.pm \
+EXTRA_MODULES=\
   Classes/Device.pm \
   Classes/Mailserver.pm \
   Classes/MAIL.pm \
@@ -36,6 +37,10 @@ AM_INSTALL_PROGRAM_FLAGS=@INSTALL_OPTS@
 	chmod +x $@
 
 $(libexec_SCRIPTS) : $(EXTRA_DIST)
+	$(ECHO) ring
+	$(ECHO) @STANDALONE@
+	$(ECHO) $(STANDALONE)
+	$(ECHO) rong
 	$(ECHO) "#! #PERL# -w" | $(AWK) -f ./subst > $@
 	$(ECHO) >> $@
 	for m in ${EXTRA_MODULES}; do \
