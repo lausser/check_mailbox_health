@@ -6,6 +6,7 @@ SUBDIRS = plugins-scripts t doc
 EXTRA_DIST = contrib
 
 dist-hook:
+	test -f ../glplugin/GLPlugin.pm && cp ../glplugin/GLPlugin.pm plugins-scripts
 	rm -f t/var/tmp/*
 	rm -f t/var/adm/*
 	find $(distdir) -depth -name .svn -exec rm -rf {} \;

@@ -23,7 +23,7 @@ endif
 
 SUFFIXES = .pl .pm .sh
 VPATH=$(top_srcdir) $(top_srcdir)/plugins-scripts $(top_srcdir)/plugins-scripts/t
-EXTRA_DIST=$(libexec_SCRIPTS).pl $(EXTRA_MODULES)
+EXTRA_DIST=$(libexec_SCRIPTS).pl $(EXTRA_MODULES) $(GL_MODULES)
 CLEANFILES=$(libexec_SCRIPTS)
 
 AM_INSTALL_PROGRAM_FLAGS=@INSTALL_OPTS@
