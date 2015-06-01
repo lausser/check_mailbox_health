@@ -1,25 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SED=/bin/sed
-GREP=/bin/grep
-CAT=/bin/cat
-ECHO=/bin/echo
-
-# --enable-standalone 1
-# --disable-standalone 0
-# ... 0
-if DISABLE_STANDALONE
-STANDALONE = "no"
-else
-STANDALONE = "yes"
-endif
-
-SUFFIXES = .pl .pm .sh
-
-VPATH=$(top_srcdir) $(top_srcdir)/plugins-scripts $(top_srcdir)/plugins-scripts/t
-
 libexec_SCRIPTS=check_mailbox_health
-MY_MODULES=
 GL_MODULES=\
   GLPlugin.pm
 EXTRA_MODULES=\
@@ -27,8 +8,22 @@ EXTRA_MODULES=\
   Classes/Mailserver.pm \
   Classes/MAIL.pm \
   Classes/IMAP.pm
-EXTRA_DIST=check_mailbox_health.pl $(EXTRA_MODULES)
 
+
+SED=/bin/sed
+GREP=/bin/grep
+CAT=/bin/cat
+ECHO=/bin/echo
+
+if DISABLE_STANDALONE
+STANDALONE = "no"
+else
+STANDALONE = "yes"
+endif
+
+SUFFIXES = .pl .pm .sh
+VPATH=$(top_srcdir) $(top_srcdir)/plugins-scripts $(top_srcdir)/plugins-scripts/t
+EXTRA_DIST=$(libexec_SCRIPTS).pl $(EXTRA_MODULES)
 CLEANFILES=$(libexec_SCRIPTS)
 
 AM_INSTALL_PROGRAM_FLAGS=@INSTALL_OPTS@
@@ -62,5 +57,5 @@ $(libexec_SCRIPTS) : $(EXTRA_DIST)
 			$(ECHO) "use `$(ECHO) $$m | $(SED) -s 's/\.pm$$//g'`;" >> $@; \
 		done \
 	fi
-	$(CAT) check_mailbox_health.pl | $(AWK) -f ./subst >> $@
+	$(CAT) $(libexec_SCRIPTS).pl | $(AWK) -f ./subst >> $@
 	chmod +x $@
