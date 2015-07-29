@@ -14,7 +14,7 @@ sub check_connect_and_version {
   $self->{session} = Net::IMAP::Simple->new(
       $self->opts->hostname, timeout => $self->opts->timeout,
       use_ssl => $self->opts->ssl ? 1 : 0,
-      debug => $self->opts->verbose ? $self->opts->verbose : undef);
+      debug => $self->opts->verbose > 10 ? $self->opts->verbose : undef);
   #$self->{session}->starttls() if $self->opts->ssl;
   if (! $self->{session}) {
     $self->add_critical("imap server not available");
@@ -35,6 +35,7 @@ sub read_mails {
   $msgnums = 0 if ($msgnums eq "0E0" || ! defined $msgnums);
   for (my $msgnum = 1; $msgnum <= $msgnums; $msgnum++) {
     my $mail = $self->{session}->get($msgnum);
+    next if ! defined $mail; # notbremse, evt. wurde gerade eine mail geloescht
     my $mailsig = "-new-";
     eval {
       my $mail = Classes::MAIL->new(join("", @{$mail}));

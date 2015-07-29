@@ -23,6 +23,15 @@ sub init {
     $self->no_such_mode();
   }
   $self->check();
+  $self->dump()
+      if $self->opts->verbose >= 2;
+}
+
+sub dump {
+  my $self = shift;
+  foreach (@{$self->{mails}}) {
+    $_->dump();
+  }
 }
 
 sub check {
@@ -40,6 +49,7 @@ sub check {
     foreach (@{$self->{mails}}) {
       printf "%s\n", $_->signature;
     }
+    $self->add_ok("have fun");
   } elsif ($self->mode =~ /^mails::/) {
     if ($self->opts->select) {
       if (grep /attachments/, keys %{$self->opts->select}) {
@@ -68,12 +78,13 @@ sub check {
           if (scalar(@{$self->{mails}})) {
             $self->add_message($self->check_thresholds(metric => 'max_age', value => $self->{max_mail_age}),
                 sprintf "%d mails too old", $self->{num_mails});
-            $self->add_info(sprintf "age of the oldest mail is %d minutes", @{$self->{mails}}[-1]->age_minutes);
+            $self->add_info(sprintf "age of the oldest mail is %d minutes", $self->{max_mail_age});
           } else {
             $self->add_critical("jetz klauns da de mails scho mittn ausm plugin aussa");
           }
           $self->add_message($self->check_thresholds($self->{max_mail_age}));
         } else {
+          $self->add_ok(sprintf "age of the oldest mail is %d minutes", $self->{max_mail_age});
           $self->add_ok("no outdated mails");
         }
       } else {
@@ -133,13 +144,49 @@ sub filter_mails {
       push(@filters, sub {
         my $self = shift;
         my $mail = shift;
-        $mail->age_minutes <= $self->opts->select->{$key};
+        if ($self->opts->select->{$key} =~ /^\d+$/) {
+          $mail->age_minutes <= $self->opts->select->{$key};
+        } else {
+          my $date = new Date::Manip::Date;
+          my $stderrvar;
+          my $parseerr;
+          *SAVEERR = *STDERR;
+          open OUT ,'>',\$stderrvar;
+          *STDERR = *OUT;
+          eval {
+            $parseerr = $date->parse($self->opts->select->{$key});
+          };
+          if ($@ || $stderrvar || $parseerr) {
+            $self->add_unknown(sprintf "invalid date format \"%s\" (%s)",
+                $self->opts->select->{$key}, $@ || $stderrvar || $parseerr);
+          }
+          *STDERR = *SAVEERR;
+          $mail->received >= $date->printf("%s");
+        }
       });
     } elsif (lc $key eq "older_than") {
       push(@filters, sub {
         my $self = shift;
         my $mail = shift;
-        $mail->age_minutes >= $self->opts->select->{$key};
+        if ($self->opts->select->{$key} =~ /^\d+$/) {
+          $mail->age_minutes < $self->opts->select->{$key};
+        } else {
+          my $date = new Date::Manip::Date;
+          my $stderrvar;
+          my $parseerr;
+          *SAVEERR = *STDERR;
+          open OUT ,'>',\$stderrvar;
+          *STDERR = *OUT;
+          eval {
+            $parseerr = $date->parse($self->opts->select->{$key});
+          };
+          if ($@ || $stderrvar || $parseerr) {
+            $self->add_unknown(sprintf "invalid date format \"%s\" (%s)", 
+                $self->opts->select->{$key}, $@ || $stderrvar || $parseerr);
+          }
+          *STDERR = *SAVEERR;
+          $mail->received < $date->printf("%s");
+        }
       });
     } elsif (lc $key eq "has_attachments") {
       push(@filters, sub {
@@ -156,8 +203,9 @@ sub filter_mails {
             $self->filter_namex($_, $attachment->content_type) ;
           } map { 
             if ($self->opts->regexp) {
-              s/\//\\\//g; $_;
+              s/\//\\\//g;
             }
+            $_;
           } map {
             /^\s*(.*?)\s*$/; $1; 
           } split(/,/, $self->opts->select->{$key});

@@ -1,5 +1,5 @@
 package Classes::MAIL;
-our @ISA = qw(GLPlugin::TableItem);
+our @ISA = qw(Monitoring::GLPlugin::TableItem);
 use strict;
 use List::MoreUtils qw(natatime);
 use Date::Manip;
@@ -94,7 +94,16 @@ sub is_spam {
 
 sub signature {
   my $self = shift;
-  return sprintf "%s %s %s\n%s\n", scalar localtime $self->{header_values}->{received}, $self->{header_values}->{from}, $self->{header_values}->{subject}, join("\n", map { "  ".$_->content_type(); } @{$self->{attachments}});
+  return sprintf "%s %s %s\n%s", scalar localtime $self->{header_values}->{received}, $self->{header_values}->{from}, $self->{header_values}->{subject}, join("\n", map { "  ".$_->content_type(); } @{$self->{attachments}});
+}
+
+sub dump {
+  my $self = shift;
+  printf "[MESSAGE_%s]\n", $self->message_id();
+  printf "Received: %s\n", $self->received();
+  printf "From: %s\n", $self->from();
+  printf "Subject: %s\n", $self->subject();
+  printf "\n";
 }
 
 sub age_minutes {
@@ -105,6 +114,11 @@ sub age_minutes {
 sub received {
   my $self = shift;
   return $self->{header_values}->{received};
+}
+
+sub message_id {
+  my $self = shift;
+  return $self->{header_values}->{'message-id'};
 }
 
 sub from {
@@ -147,7 +161,7 @@ sub iAUTOLOAD {
 }
 
 package Classes::Attachment;
-our @ISA = qw(Email::MIME GLPlugin::TableItem);
+our @ISA = qw(Email::MIME Monitoring::GLPlugin::TableItem);
 use strict;
 
 sub new {

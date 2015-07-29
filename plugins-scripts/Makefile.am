@@ -1,29 +1,29 @@
-## Process this file with automake to produce Makefile.in
-
 libexec_SCRIPTS=check_mailbox_health
 GL_MODULES=\
-  GLPlugin.pm
+  ../lib/Monitoring/GLPlugin.pm \
+  ../lib/Monitoring/GLPlugin/SNMP.pm
 EXTRA_MODULES=\
-  Classes/Device.pm \
   Classes/Mailserver.pm \
   Classes/MAIL.pm \
-  Classes/IMAP.pm
-
+  Classes/IMAP.pm \
+  Classes/Device.pm
 
 SED=/bin/sed
 GREP=/bin/grep
 CAT=/bin/cat
 ECHO=/bin/echo
-
 if DISABLE_STANDALONE
-STANDALONE = "no"
+STANDALONE = no
 else
-STANDALONE = "yes"
+STANDALONE = yes
 endif
 
 SUFFIXES = .pl .pm .sh
+
 VPATH=$(top_srcdir) $(top_srcdir)/plugins-scripts $(top_srcdir)/plugins-scripts/t
+
 EXTRA_DIST=$(libexec_SCRIPTS).pl $(EXTRA_MODULES) $(GL_MODULES)
+
 CLEANFILES=$(libexec_SCRIPTS)
 
 AM_INSTALL_PROGRAM_FLAGS=@INSTALL_OPTS@
@@ -41,9 +41,12 @@ AM_INSTALL_PROGRAM_FLAGS=@INSTALL_OPTS@
 	chmod +x $@
 
 $(libexec_SCRIPTS) : $(EXTRA_DIST)
+	if [ -f ../../GLPlugin/lib/Monitoring/GLPlugin.pm ]; then cp -r ../../GLPlugin/lib ..; fi
 	$(ECHO) "#! #PERL# -w" | $(AWK) -f ./subst > $@
+	$(ECHO) "# nagios: -epn" >> $@
 	$(ECHO) >> $@
-	if [ ${STANDALONE} == "yes" ]; then \
+	if [ "${STANDALONE}" == "yes" ]; then \
+		$(ECHO) i am standalone; \
 		for m in ${GL_MODULES}; do \
 			$(SED) -e 's/^1;//g' < $$m | $(SED) -e '/^__END__/,$$d' | $(AWK) -f ./subst >> $@; \
 		done \
@@ -52,10 +55,6 @@ $(libexec_SCRIPTS) : $(EXTRA_DIST)
 		$(SED) -e 's/^1;//g' < $$m | $(SED) -e '/^__END__/,$$d' | $(AWK) -f ./subst >> $@; \
 	done
 	$(ECHO) "package main;" >> $@
-	if [ ${STANDALONE} == "no" ]; then \
-		for m in ${GL_MODULES}; do \
-			$(ECHO) "use `$(ECHO) $$m | $(SED) -s 's/\.pm$$//g'`;" >> $@; \
-		done \
-	fi
 	$(CAT) $(libexec_SCRIPTS).pl | $(AWK) -f ./subst >> $@
 	chmod +x $@
+
