@@ -34,6 +34,7 @@ sub read_mails {
   my $msgnums = $self->{session}->select($self->opts->folder);
   $msgnums = 0 if ($msgnums eq "0E0" || ! defined $msgnums);
   for (my $msgnum = 1; $msgnum <= $msgnums; $msgnum++) {
+    #my $read = $self->{session}->seen($msgnum); # bringt nix, weil die jetzt dann sowieso gelesen wird
     my $mail = $self->{session}->get($msgnum);
     next if ! defined $mail; # notbremse, evt. wurde gerade eine mail geloescht
     my $mailsig = "-new-";

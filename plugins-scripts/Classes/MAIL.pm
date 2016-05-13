@@ -103,6 +103,9 @@ sub dump {
   printf "Received: %s\n", $self->received();
   printf "From: %s\n", $self->from();
   printf "Subject: %s\n", $self->subject();
+printf "Header %s\n", Data::Dumper::Dumper($self->{header_values});
+my $sisi = $self->size_attachments();
+printf "size %s\n", Data::Dumper::Dumper($sisi);
   printf "\n";
 }
 
@@ -144,6 +147,19 @@ sub num_attachments {
 sub attachments {
   my $self = shift;
   return @{$self->{attachments}};
+}
+
+sub size_attachments {
+  my $self = shift;
+  my $size = 0;
+foreach (@{$self->{attachments}}) {
+ printf "atta len %.2fKB  type %s \n", length($_->body_raw()) / 1024, $_->content_type();
+if ($_->content_type() eq "image/jpeg") {
+ #printf "%s\n", $_->body_raw();
+}
+}
+  map { $size += length($_->body_raw()) } @{$self->{attachments}};
+  return $size;
 }
 
 
