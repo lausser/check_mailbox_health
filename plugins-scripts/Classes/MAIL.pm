@@ -152,13 +152,19 @@ sub attachments {
 sub size_attachments {
   my $self = shift;
   my $size = 0;
+  my $rsize = 0;
 foreach (@{$self->{attachments}}) {
- printf "atta len %.2fKB  type %s \n", length($_->body_raw()) / 1024, $_->content_type();
+ printf "atta len %.2fKB  %.2fKB  type %s \n",
+ length($_->body()) / 1024,
+ length($_->body_raw()) / 1024,
+ $_->content_type();
 if ($_->content_type() eq "image/jpeg") {
  #printf "%s\n", $_->body_raw();
 }
 }
-  map { $size += length($_->body_raw()) } @{$self->{attachments}};
+  map { $size += length($_->body()) } @{$self->{attachments}};
+  map { $rsize += length($_->body_raw()) } @{$self->{attachments}};
+
   return $size;
 }
 
