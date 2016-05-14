@@ -194,6 +194,21 @@ sub filter_mails {
         my $mail = shift;
         return $mail->num_attachments;
       });
+    } elsif (lc $key eq "bigger_than") {
+      push(@filters, sub {
+        my $self = shift;
+        my $mail = shift;
+        my $size = $mail->size;
+        $self->override_opt('units', 'MB') if ! $self->opts->units();
+        if (lc $self->opts->units eq "kb") {
+          $size /= 1024;
+        } elsif (lc $self->opts->units eq "mb") {
+          $size /= (1024 * 1024);
+        } elsif (lc $self->opts->units eq "gb") {
+          $size /= (1024 * 1024 * 1024);
+        }
+        return $size >= $self->opts->select->{$key};
+      });
     } elsif (lc $key eq "attachments") {
       push(@filters, sub {
         my $self = shift;

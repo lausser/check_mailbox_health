@@ -85,7 +85,7 @@ sub new {
   @{$self->{attachments}} = $parsed->subparts;
   foreach (@{$self->{attachments}}) {
     bless $_, "Classes::Attachment";
-    $_->parse_attachments(0);
+    $_->parse_attachments();
   }
   return $self;
 }
@@ -107,7 +107,7 @@ sub dump {
   printf "From: %s\n", $self->from();
   printf "Subject: %s\n", $self->subject();
 #printf "Header %s\n", Data::Dumper::Dumper($self->{header_values});
-my $sisi = $self->size_attachments();
+my $sisi = $self->size();
 printf "size %.2fKB final\n", $sisi / 1024;
   printf "\n";
 }
@@ -152,53 +152,26 @@ sub attachments {
   return @{$self->{attachments}};
 }
 
-sub size_attachments {
+sub size {
   my $self = shift;
   my $size = 0;
+  $size += length($_->body());
   foreach (@{$self->{attachments}}) {
-    printf "atta len %.2fKB  %.2fKB  type %s with %d\n",
-      length($_->body()) / 1024,
-      length($_->body_raw()) / 1024,
-      $_->content_type(),
-      $_->subparts || 0;
-    my @attachments = $_->subparts;
-    foreach (@attachments) {
-printf "  -- %s %s\n", ref($_), $_->content_type();
-      bless $_, "Classes::Attachment";
-      $_->parse_attachments(1);
-#attachment ist -- Email::MIME image/jpeg; name="WP_20160509
-#parse_attachments sagt korrekt,dass es keine weiteren atts hat
-#aber est gibt keine Methode size_attachments
-      $size += $_->size_attachments();
-printf "i add %.2fKB att\n", $_->size_attachments() / 1024;
-    }
-    $size += length($_->body());
-printf "i add %.2fKB body\n", length($_->body()) / 1024;
+    my $asize = $_->size();
+    $size += $asize;
   }
   return $size;
 }
 
-sub rsize_attachments {
+sub raw_size {
   my $self = shift;
-  my $rsize = 0;
+  my $size = 0;
+  $size += length($_->body_raw());
   foreach (@{$self->{attachments}}) {
-    printf "atta len %.2fKB  %.2fKB  type %s \n",
-      length($_->body()) / 1024,
-      length($_->body_raw()) / 1024,
-      $_->content_type();
-    if ($_->content_type() =~ /^multipart\//) {
-      #printf "%s\n", $_->body_raw();
-      my @attachments = $_->subparts;
-      foreach (@{$self->{attachments}}) {
-        bless $_, "Classes::Attachment";
-        $_->parse_attachments();
-        $rsize += $_->rsize_attachments();
-      }
-    } else {
-      $rsize += length($_->body_raw());
-    }
+    my $asize = $_->size();
+    $size += $asize;
   }
-  return $rsize;
+  return $size;
 }
 
 
@@ -208,7 +181,6 @@ use strict;
 
 sub new {
   my $class = shift;
-printf "!!!i am attanew!\n";
   my $raw_text = shift;
   my $self = {
     attachments => [],
@@ -229,16 +201,11 @@ printf "!!!i am attanew!\n";
 
 sub parse_attachments {
   my $self = shift;
- my $rr = shift;
   $self->{attachments} = [];
   my @attachments = $self->subparts();
-printf "i am parseatta %d - %s have %d myself\n", $rr, $self->content_type(), scalar(@attachments);
   foreach (@attachments) {
-printf " bless %s as atta\n", ref($_);
     bless $_, "Classes::Attachment";
-    printf ">\n";
-    $_->parse_attachments($rr + 1);
-    printf "<\n";
+    $_->parse_attachments();
     push(@{$self->{attachments}}, $_);
   }
 }
