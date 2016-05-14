@@ -33,7 +33,6 @@ sub new {
     }
     $stderrvar = undef;
   }
-  @{$self->{attachments}} = $parsed->subparts;
   my $header_values = {};
   my @header_names = $parsed->header_pairs;
   my $iter = natatime(2, @header_names);
@@ -81,9 +80,12 @@ sub new {
   }
   %{$self->{header_values}} = %{$header_values};
   $self->{body} = $parsed->body;
+  #my @ attachments = $parsed->subparts;
+  # flatten
+  @{$self->{attachments}} = $parsed->subparts;
   foreach (@{$self->{attachments}}) {
-printf "attachmentsbless %s\n", ref($_);
     bless $_, "Classes::Attachment";
+    $_->parse_attachments(0);
   }
   return $self;
 }
@@ -164,6 +166,9 @@ sub size_attachments {
 printf "  -- %s %s\n", ref($_), $_->content_type();
       bless $_, "Classes::Attachment";
       $_->parse_attachments(1);
+#attachment ist -- Email::MIME image/jpeg; name="WP_20160509
+#parse_attachments sagt korrekt,dass es keine weiteren atts hat
+#aber est gibt keine Methode size_attachments
       $size += $_->size_attachments();
 printf "i add %.2fKB att\n", $_->size_attachments() / 1024;
     }
@@ -198,7 +203,7 @@ sub rsize_attachments {
 
 
 package Classes::Attachment;
-our @ISA = qw(Email::MIME Monitoring::GLPlugin::TableItem);
+our @ISA = qw(Email::MIME Classes::MAIL Monitoring::GLPlugin::TableItem);
 use strict;
 
 sub new {
