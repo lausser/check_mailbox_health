@@ -1,3 +1,5 @@
+* 2016-05-14 1.6
+  add selectors "seen" and "is_bigger"
 * 2016-02-29 1.5
   update version, changelog, glplugin
 * 2016-02-09 1.4

@@ -226,6 +226,14 @@ sub filter_mails {
           } split(/,/, $self->opts->select->{$key});
         } @{$mail->{attachments}};
       });
+    } elsif (lc $key eq "seen") {
+      push(@filters, sub {
+        my $self = shift;
+        my $mail = shift;
+        return 1 if $self->opts->select->{$key} eq "no" && ! $mail->{seen};
+        return 1 if $self->opts->select->{$key} eq "yes" &&  $mail->{seen};
+        return 0;
+      });
     }
   }
   my $filters = scalar(@filters);
