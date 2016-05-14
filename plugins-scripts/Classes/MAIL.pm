@@ -82,6 +82,7 @@ sub new {
   %{$self->{header_values}} = %{$header_values};
   $self->{body} = $parsed->body;
   foreach (@{$self->{attachments}}) {
+printf "attachmentsbless %s\n", ref($_);
     bless $_, "Classes::Attachment";
   }
   return $self;
@@ -103,9 +104,9 @@ sub dump {
   printf "Received: %s\n", $self->received();
   printf "From: %s\n", $self->from();
   printf "Subject: %s\n", $self->subject();
-printf "Header %s\n", Data::Dumper::Dumper($self->{header_values});
+#printf "Header %s\n", Data::Dumper::Dumper($self->{header_values});
 my $sisi = $self->size_attachments();
-printf "size %s\n", Data::Dumper::Dumper($sisi);
+printf "size %.2fKB final\n", $sisi / 1024;
   printf "\n";
 }
 
@@ -152,35 +153,49 @@ sub attachments {
 sub size_attachments {
   my $self = shift;
   my $size = 0;
-  my $rsize = 0;
-foreach (@{$self->{attachments}}) {
- printf "atta len %.2fKB  %.2fKB  type %s \n",
- length($_->body()) / 1024,
- length($_->body_raw()) / 1024,
- $_->content_type();
-if ($_->content_type() eq "image/jpeg") {
- #printf "%s\n", $_->body_raw();
-}
-}
-  map { $size += length($_->body()) } @{$self->{attachments}};
-  map { $rsize += length($_->body_raw()) } @{$self->{attachments}};
-
+  foreach (@{$self->{attachments}}) {
+    printf "atta len %.2fKB  %.2fKB  type %s with %d\n",
+      length($_->body()) / 1024,
+      length($_->body_raw()) / 1024,
+      $_->content_type(),
+      $_->subparts || 0;
+    my @attachments = $_->subparts;
+    foreach (@attachments) {
+printf "  -- %s %s\n", ref($_), $_->content_type();
+      bless $_, "Classes::Attachment";
+      $_->parse_attachments(1);
+      $size += $_->size_attachments();
+printf "i add %.2fKB att\n", $_->size_attachments() / 1024;
+    }
+    $size += length($_->body());
+printf "i add %.2fKB body\n", length($_->body()) / 1024;
+  }
   return $size;
 }
 
-
-sub iAUTOLOAD {
+sub rsize_attachments {
   my $self = shift;
-  #$self->debug("AUTOLOAD %s\n", $AUTOLOAD)
-  #      if $self->opts->verbose >= 2;
-  return if ($AUTOLOAD =~ /DESTROY/);
-  if ($AUTOLOAD =~ /^.*::(date|from|to|subject|received|message\-id)$/) {
-    return $self->{header_values}->{$1};
-  } else {
-  #  $self->debug("AUTOLOAD: class %s has no method %s\n",
-  #      ref($self), $AUTOLOAD);
+  my $rsize = 0;
+  foreach (@{$self->{attachments}}) {
+    printf "atta len %.2fKB  %.2fKB  type %s \n",
+      length($_->body()) / 1024,
+      length($_->body_raw()) / 1024,
+      $_->content_type();
+    if ($_->content_type() =~ /^multipart\//) {
+      #printf "%s\n", $_->body_raw();
+      my @attachments = $_->subparts;
+      foreach (@{$self->{attachments}}) {
+        bless $_, "Classes::Attachment";
+        $_->parse_attachments();
+        $rsize += $_->rsize_attachments();
+      }
+    } else {
+      $rsize += length($_->body_raw());
+    }
   }
+  return $rsize;
 }
+
 
 package Classes::Attachment;
 our @ISA = qw(Email::MIME Monitoring::GLPlugin::TableItem);
@@ -188,13 +203,39 @@ use strict;
 
 sub new {
   my $class = shift;
+printf "!!!i am attanew!\n";
   my $raw_text = shift;
-  my $self = {};
+  my $self = {
+    attachments => [],
+  };
   bless $self, $class;
+  my $parsed = undef;
+  eval {
+    $parsed = Email::MIME->new($raw_text);
+    
+    @{$self->{attachments}} = $parsed->subparts;
+    $self->{body} = $parsed->body;
+  };
   if ($self->content_type !~ /^text/) {
     $self->body_set("_binaerer_schrott_");
   }
   return $self;
+}
+
+sub parse_attachments {
+  my $self = shift;
+ my $rr = shift;
+  $self->{attachments} = [];
+  my @attachments = $self->subparts();
+printf "i am parseatta %d - %s have %d myself\n", $rr, $self->content_type(), scalar(@attachments);
+  foreach (@attachments) {
+printf " bless %s as atta\n", ref($_);
+    bless $_, "Classes::Attachment";
+    printf ">\n";
+    $_->parse_attachments($rr + 1);
+    printf "<\n";
+    push(@{$self->{attachments}}, $_);
+  }
 }
 
 sub content_type {
