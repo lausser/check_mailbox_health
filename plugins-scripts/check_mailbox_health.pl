@@ -78,7 +78,6 @@ $plugin->add_arg(
 );
 $plugin->add_arg(
     spec => 'port=i',
-    default => 143,
     help => "--port
    the mailserver's port",
     required => 0,

@@ -8,8 +8,9 @@ sub init {
   if ($self->mode =~ /^server::connectiontime/) {
     $self->{connection_time} = $self->{tac} - $self->{tic};
   } elsif ($self->mode =~ /^mails::/) {
-    $self->read_mails();
-    $self->{num_all_mails} = scalar(@{$self->{mails}});
+    $self->check_folder();
+    return if $self->check_messages();
+    $self->{num_all_mails} = scalar(@{$self->{mails}}) if ! exists $self->{num_all_mails};
     $self->filter_mails();
     $self->{num_mails} = scalar(@{$self->{mails}});
     if ($self->mode =~ /^mails::age/) {

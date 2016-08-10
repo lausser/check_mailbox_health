@@ -4,7 +4,7 @@
 
 AUTOMAKE_OPTIONS = 1.3 no-dependencies
 
-#all:	tests
+all:	tests
 
 TEST_VERBOSE=0
 TEST_TYPE=test_$(LINKTYPE)
@@ -13,7 +13,7 @@ TEST_FILES = *.t
 TESTDB_SW = -d
 
 #EXTRA_DIST = *.t bin var etc
-EXTRA_DIST = *.t
+EXTRA_DIST = *.t greenmail-standalone-1.5.1.jar NPTest.pm
 
 tests:
 	$(PERL) "-MExtUtils::Command::MM" "-e" "test_harness($(TEST_VERBOSE))" $(TEST_FILES)
