@@ -1,3 +1,5 @@
+* 2016-11-28 1.7.1
+  fix utf-encoded subjects
 * 2016-08-10 1.7
   delegate some selects to the imap-server
   add a greenmail simulator for tests

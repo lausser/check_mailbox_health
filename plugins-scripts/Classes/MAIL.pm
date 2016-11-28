@@ -3,6 +3,7 @@ our @ISA = qw(Monitoring::GLPlugin::TableItem);
 use strict;
 use List::MoreUtils qw(natatime);
 use Date::Manip;
+use Encode qw(decode);
 our $AUTOLOAD;
 
 sub new {
@@ -134,7 +135,7 @@ sub from {
 
 sub subject {
   my $self = shift;
-  return $self->{header_values}->{subject} || "";
+  return decode("MIME-Header", $self->{header_values}->{subject} || "");
 }
 
 sub body {
