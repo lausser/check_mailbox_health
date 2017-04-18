@@ -214,18 +214,39 @@ sub filter_mails {
       push(@filters, sub {
         my $self = shift;
         my $mail = shift;
-        grep { my $attachment = $_;
-          grep {
-            $self->filter_namex($_, $attachment->content_type) ;
-          } map { 
-            if ($self->opts->regexp) {
-              s/\//\\\//g;
-            }
-            $_;
-          } map {
-            /^\s*(.*?)\s*$/; $1; 
-          } split(/,/, $self->opts->select->{$key});
-        } @{$mail->{attachments}};
+        my $filter_raw = $self->opts->select->{$key};
+        my $check_content_type = index($filter_raw, "/") != -1;
+        my $extensions = [];
+        if (!$check_content_type) {
+          while ($filter_raw =~ /(\*(\.[a-z]+);?)/g) {
+            push @$extensions, $2; # ".xls"
+          }
+        }
+
+        if ($check_content_type) {
+          # "application/pdf"
+          grep { my $attachment = $_;
+            grep {
+              $self->filter_namex($_, $attachment->content_type) ;
+            } map { 
+              if ($self->opts->regexp) {
+                s/\//\\\//g;
+              }
+              $_;
+            } map {
+              /^\s*(.*?)\s*$/; $1; 
+            } split(/,/, $filter_raw);
+          } @{$mail->{attachments}};
+        }
+        else {
+          # "*.xls;*.xlsx"
+          grep { my $attachment = $_;
+            grep {
+              substr($attachment->filename // '', -(length($_))) eq $_;
+            } @$extensions
+          } @{$mail->{attachments}};
+        }
+
       });
     } elsif (lc $key eq "seen") {
       push(@filters, sub {
