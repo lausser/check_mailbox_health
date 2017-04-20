@@ -211,42 +211,42 @@ sub filter_mails {
         return $size >= $self->opts->select->{$key};
       });
     } elsif (lc $key eq "attachments") {
+      # --select attachments='application/pdf,*.xls,*.xlsx'
       push(@filters, sub {
         my $self = shift;
         my $mail = shift;
-        my $filter_raw = $self->opts->select->{$key};
-        my $check_content_type = index($filter_raw, "/") != -1;
-        my $extensions = [];
-        if (!$check_content_type) {
-          while ($filter_raw =~ /(\*(\.[a-z]+);?)/g) {
-            push @$extensions, $2; # ".xls"
-          }
-        }
-
-        if ($check_content_type) {
-          # "application/pdf"
-          grep { my $attachment = $_;
-            grep {
-              $self->filter_namex($_, $attachment->content_type) ;
-            } map { 
+        my @types = map {
+            /^\s*(.*?)\s*$/; $1;
+        } split(/,/, $self->opts->select->{$key});
+        grep {
+          my $attachment = $_;
+          grep {
+            my $type = $_;
+            if (index($type, "/") != -1) {
+              # application/pdf
               if ($self->opts->regexp) {
-                s/\//\\\//g;
+                # image/.* -> image\/.*
+                # image\/.* -> image\/.*
+                $type =~ s/(?<!\\)\//\\\//g;
               }
-              $_;
-            } map {
-              /^\s*(.*?)\s*$/; $1; 
-            } split(/,/, $filter_raw);
-          } @{$mail->{attachments}};
-        }
-        else {
-          # "*.xls;*.xlsx"
-          grep { my $attachment = $_;
-            grep {
-              substr($attachment->filename // '', -(length($_))) eq $_;
-            } @$extensions
-          } @{$mail->{attachments}};
-        }
-
+              $self->filter_namex($type, $attachment->content_type) ;
+            } else {
+              if ($self->opts->regexp) {
+                # \.xlsx
+                # match on the whole filename
+                $self->filter_namex($type, $attachment->filename) ;
+              } else {
+                # xlsx
+                # match exactly on the extension
+                if ($attachment->filename =~ /(.*)\.(\w+)$/) {
+                    $type eq $2;
+                } else {
+                    0;
+                }
+              }
+            }
+          } @types;
+        } @{$mail->{attachments}};
       });
     } elsif (lc $key eq "seen") {
       push(@filters, sub {

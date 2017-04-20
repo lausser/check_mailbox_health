@@ -98,7 +98,13 @@ sub is_spam {
 
 sub signature {
   my $self = shift;
-  return sprintf "%s %s %s\n%s", scalar localtime $self->{header_values}->{received}, $self->{header_values}->{from}, $self->{header_values}->{subject}, join("\n", map { "  ".$_->content_type(); } @{$self->{attachments}});
+  return sprintf "%s %s %s\n%s",
+      scalar localtime $self->{header_values}->{received},
+      $self->{header_values}->{from},
+      $self->{header_values}->{subject},
+      join("\n", map {
+          "  ".$_->content_type()." ".$_->filename();
+      } @{$self->{attachments}});
 }
 
 sub dump {
@@ -108,8 +114,8 @@ sub dump {
   printf "From: %s\n", $self->from();
   printf "Subject: %s\n", $self->subject();
 #printf "Header %s\n", Data::Dumper::Dumper($self->{header_values});
-my $sisi = $self->size();
-printf "size %.2fKB final\n", $sisi / 1024;
+  my $sisi = $self->size();
+  printf "size %.2fKB final\n", $sisi / 1024;
   printf "\n";
 }
 
@@ -209,6 +215,16 @@ sub parse_attachments {
     $_->parse_attachments();
     push(@{$self->{attachments}}, $_);
   }
+}
+
+sub filename {
+  my $self = shift;
+  my $filename = "--noname--";
+  if (defined $self->SUPER::filename) {
+    $filename = $self->SUPER::filename;
+    $filename =~ s/;.*//g;
+  }
+  return $filename
 }
 
 sub content_type {
