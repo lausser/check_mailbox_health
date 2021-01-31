@@ -29,8 +29,13 @@ sub new {
     if ($stderrvar =~ /Illegal Content-Type parameter/) {
     } elsif ($stderrvar =~ /Use of uninitialized value in lc.*Header.pm/) {
     } else {
-      printf STDERR "stderrvar %s\n", $stderrvar;
-      printf STDERR "stderrvar %s\n----------------------------------\n", $raw_text;
+      printf STDERR "there is output on stderr, increase verbosity to > 15"
+          if $self->opts->verbose < 15;
+      if ($self->opts->verbose >= 15) {
+        printf STDERR "stderror found\n";
+        printf STDERR "stderrvar %s\n", $stderrvar;
+        printf STDERR "stderrvar %s\n----------------------------------\n", $raw_text;
+      }
     }
     $stderrvar = undef;
   }
@@ -72,9 +77,13 @@ sub new {
       # das raeumt dann die content_type-Methode auf
     } elsif ($stderrvar =~ /Use of uninitialized value in lc at .*Header\.pm/) {
     } else {
-      printf STDERR "2norecieved %s\n%s\n", $stderrvar, Data::Dumper::Dumper($header_values);
-      printf STDERR "3norecieved %s\n%s\n", $stderrvar, $raw_text;
-      printf "--------------------------------------------------------------------------------\n\n";
+      printf STDERR "there is output on stderr, increase verbosity to > 15"
+          if $self->opts->verbose < 15;
+      if ($self->opts->verbose >= 15) {
+        printf STDERR "2noreceived %s\n%s\n", $stderrvar, Data::Dumper::Dumper($header_values);
+        printf STDERR "3noreceived %s\n%s\n", $stderrvar, $raw_text;
+        printf "--------------------------------------------------------------------------------\n\n";
+      }
       $self->add_unknown(sprintf "date error in %s from %s",
           $header_values->{'message-id'}, $header_values->{from});
     }
@@ -223,6 +232,10 @@ sub filename {
   if (defined $self->SUPER::filename) {
     $filename = $self->SUPER::filename;
     $filename =~ s/;.*//g;
+    # irgend so utfdecodierte filenamen ?utf?schlotznrotzn= kreuzen mit
+    # anfuehrungszeichen auf.
+    $filename =~ s/"$//g;
+    $filename =~ s/^"//g;
   }
   return $filename
 }

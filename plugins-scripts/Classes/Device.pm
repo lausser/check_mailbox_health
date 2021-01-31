@@ -22,6 +22,9 @@ sub classify {
   }
   if (! eval "require Email::MIME") {
     $self->add_critical('could not load perl module Email::MIME');
+  } else {
+    my $x = $Email::MIME::ContentType::STRICT_PARAMS;
+    $Email::MIME::ContentType::STRICT_PARAMS = 0;
   }
   if (! $self->check_messages()) {
     $self->check_connect_and_version();

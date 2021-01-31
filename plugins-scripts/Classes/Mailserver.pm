@@ -1,6 +1,7 @@
 package Classes::Mailserver;
 our @ISA = qw(Classes::Device);
 
+use Encode qw(encode_utf8 is_utf8 decode_utf8);
 use strict;
 
 sub init {
@@ -131,13 +132,23 @@ sub filter_mails {
       push(@filters, sub {
         my $self = shift;
         my $mail = shift;
+        my $wanted_content = $self->opts->select->{$key};
         if (! $mail->num_attachments) {
-          return $self->filter_namex($self->opts->select->{$key}, $mail->body);
+          if (is_utf8($mail->body)) {
+            binmode STDOUT, ':utf8';
+            $wanted_content = decode_utf8($wanted_content);
+          }
+          return $self->filter_namex($wanted_content, $mail->body);
         } else {
           grep {
-            $self->filter_namex($self->opts->select->{$key}, $_->body);
-          } grep {
             $_->content_type =~ /^text/;
+          } grep {
+            my $wanted_content = $self->opts->select->{$key};
+            if (is_utf8($_->body)) {
+              binmode STDOUT, ':utf8';
+              $wanted_content = decode_utf8($wanted_content);
+            }
+            $self->filter_namex($wanted_content, $_->body);
           } @{$mail->{attachments}};
         }
       });
@@ -231,6 +242,24 @@ sub filter_mails {
               }
               $self->filter_namex($type, $attachment->content_type) ;
             } else {
+              if (is_utf8($attachment->filename)) {
+                # das wird richtig spassig. keine ahnung, wie das richtig
+                # geht, aber hier ist das so hingedengelt, dass es im test
+                # funktioniert.
+                my $dollar = 0;
+                if ($type =~ /^(.*)\$$/) {
+                  # erst den dollar wegnehmen und dann nach den konvertieren
+                  # wieder hinten dranpappen. wenn der dollar mitgeutftet
+                  # wird, dann klappts mit dem anchor nicht. (seltsamerweise
+                  # matcht dann 'jpg.*$', das ist alles so ein dreck.
+                  $type = $1;
+                }
+                $type = decode_utf8($type);
+                $type .= '$' if $dollar;
+                # noch was: "Wide character in printf" auf stderr und so zeug.
+                # laesst sch hoffentlich vermeiden mit
+                binmode STDOUT, ':utf8';
+              }
               if ($self->opts->regexp) {
                 # \.xlsx
                 # match on the whole filename
@@ -238,7 +267,7 @@ sub filter_mails {
               } else {
                 # xlsx
                 # match exactly on the extension
-                if ($attachment->filename =~ /(.*)\.(\w+)$/) {
+                if ($attachment->filename =~ /(.*)\.([^\.]+)$/) {
                     $type eq $2;
                 } else {
                     0;
