@@ -121,7 +121,8 @@ sub filter_mails {
     }
   }
   my @msgids = ();
-  if (@filters) {
+  $self->getcapabilities();
+  if (@filters and $self->can_sort()) {
     @msgids = ($self->{session}->search(join(" ", @filters), "ARRIVAL"));
   } else {
     @msgids = (1..$self->{num_all_mails});
@@ -144,3 +145,28 @@ sub filter_mails {
   $self->SUPER::filter_mails();
 }
  
+sub getcapabilities {
+  my ($self) = @_;
+  $self->{capabilities} = [];
+  eval {
+    my @lines;
+    $self->{session}->_process_cmd(
+        cmd => [ "CAPABILITY" ],
+        final => sub {
+            my $cap_line = join( ' ', @lines);
+            my @caps = split(/\s+/, $cap_line);
+            if ($caps[0] eq '*') { shift @caps; }
+            $self->{capabilities} = \@caps;
+        },
+        process => sub {
+            push @lines, @_;
+        },
+    );
+  };
+  $self->debug(sprintf "capabilities: %s", join(",", @{$self->{capabilities}}));
+}
+
+sub can_sort {
+  my ($self) = @_;
+  return (grep /^SORT/, @{$self->{capabilities}}) ? 1 : 0;
+}
