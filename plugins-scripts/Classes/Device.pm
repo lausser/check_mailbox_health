@@ -19,6 +19,20 @@ sub classify {
     if (! eval "require List::MoreUtils") {
       $self->add_critical('could not load perl module List::MoreUtils');
     }
+  } elsif ($self->opts->protocol eq 'o365') {
+    bless $self, "Classes::O365";
+    if (! $self->opts->hostname && ! $self->opts->username && ! $self->opts->password) {
+      $self->add_unknown('Please specify hostname, username and password');
+    }
+    if (! eval "require Net::IMAP::Simple") {
+      $self->add_critical('could not load perl module Net::IMAP::Simple');
+    }
+    if (! eval "require LWP::UserAgent") {
+      $self->add_critical('could not load perl module LWP::UserAgent');
+    }
+    if (! eval "require HTTP::Request") {
+      $self->add_critical('could not load perl module HTTP::Request');
+    }
   }
   if (! eval "require Email::MIME") {
     $self->add_critical('could not load perl module Email::MIME');

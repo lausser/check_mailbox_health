@@ -10,6 +10,7 @@ EXTRA_MODULES=\
   Classes/Mailserver.pm \
   Classes/MAIL.pm \
   Classes/IMAP.pm \
+  Classes/O365.pm \
   Classes/Device.pm
 
 SED=/bin/sed
