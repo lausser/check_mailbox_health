@@ -65,7 +65,7 @@ sub check_connect_and_version {
     # tokens aus dem cache holen (refresh und access)
     # pruefen, ob man sich mit dem _token einen xoauth2-token holen kann
     # falls nicht, den ganzen api-schlonz ausfuehren
-    o warnings 'redefine';
+    no warnings 'redefine';
     no warnings 'once';
     *Net::IMAP::Simple::login = sub {
       my ($self, $o365, $username, $password) = @_;
